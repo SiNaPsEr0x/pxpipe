@@ -77,7 +77,8 @@ cat prompt.txt | pxpipe export --stdin
 pxpipe export --git
 ```
 
-The command writes an output folder containing `page-*.png`, `factsheet.txt`,
+Each run writes a fresh `pxpipe-export-XXXXXX/` output folder (the exact path
+is printed when the command finishes) containing `page-*.png`, `factsheet.txt`,
 `manifest.json`, and `prompt.txt`. Upload the PNG pages and paste the prompt
 into image-upload clients such as Cursor when you want dense visual context
 without running the proxy.
