@@ -881,9 +881,6 @@ const CSS = `
   .models-summary { cursor: pointer; color: var(--ink-2); font-size: 12px; font-weight: 600;
     margin: 0 0 8px; user-select: none; }
   .models-summary:hover { color: var(--flame-ink); }
-  .models-warning { color: var(--ink-2); background: var(--surface); border: 1px solid var(--border-strong);
-    border-left: 3px solid var(--bad); border-radius: 8px; padding: 8px 12px; font-size: 12px;
-    margin: 0 0 12px; }
 
   /* session hero */
   #frag-session { display: block; margin-bottom: 16px; }
@@ -1213,7 +1210,6 @@ export function renderPage(port: number, lang: Lang = DEFAULT_LANG): string {
 
 <details class="models-collapse">
   <summary class="models-summary">${m.modelScopeSummary} <span class="hint">${m.modelScopeHint}</span></summary>
-  <div class="models-warning">${m.modelScopeWarning}</div>
   <div id="frag-models" hx-get="/fragments/models" hx-trigger="load, every 2s [!document.activeElement || document.activeElement.id !== 'models-csv']" hx-swap="innerHTML"></div>
   <div class="models-routing"><span class="hint">${m.routingScopeHint}</span> <button class="mini-btn" type="button" onclick="document.getElementById('routing-help').showModal()">${m.routingHelpBtn}</button></div>
 </details>

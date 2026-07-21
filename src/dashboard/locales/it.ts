@@ -27,8 +27,6 @@ export const it: Messages = {
 
   modelScopeSummary: 'Ambito modelli da imaging',
   modelScopeHint: 'Solo Fable 5 di default · espandi per sperimentare con altre famiglie',
-  modelScopeWarning:
-    '⚠ La compressione a immagine è ottimizzata solo per Fable 5 — altre famiglie possono usare più token, non meno. Attivala solo per esperimenti deliberati (system prompt personalizzato, subagent con altro modello, …).',
   compressionOffNoEffect: 'la compressione è disattivata — queste impostazioni non hanno effetto al momento',
   imageClaudeModels: 'Modelli Claude da trasformare in immagine',
   imageOpenAIModels: 'Modelli OpenAI Responses da trasformare in immagine',
@@ -152,7 +150,7 @@ export const it: Messages = {
   thModel: 'Modello',
   thSentAs: 'Inviato come',
   thSentAsTip: 'Il contesto di questa richiesta è stato compresso in un\'immagine?',
-  thCacheHits: 'Colpi cache',
+  thCacheHits: 'Hit di cache',
   thCacheHitsTip: 'Token serviti dalla cache di Claude (economici)',
   thAsText: 'Come testo',
   thAsTextTip: 'Input equivalente in fatturazione se mantenuto come testo semplice, dopo le tariffe cache create/read',
@@ -203,7 +201,7 @@ export const it: Messages = {
   sectionWhatHappenedSub: 'clicca una richiesta per vedere immagine vs testo',
   cardRecentRequests: 'Richieste recenti',
   cardImageVsText: 'Ripartizione immagine vs testo',
-  cardInspector: 'Ispettore immagine ↔ sorgente',
+  cardInspector: 'Ispezione immagine ↔ sorgente',
   sectionTopSessions: 'Sessioni principali',
   sectionTopSessionsSub: 'per token risparmiati',
   sectionFullHistory: 'Storico completo',

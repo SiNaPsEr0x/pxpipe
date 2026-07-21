@@ -27,7 +27,6 @@ export interface Messages {
   // ---- model scope ------------------------------------------------------
   modelScopeSummary: string;
   modelScopeHint: string;
-  modelScopeWarning: string;
   compressionOffNoEffect: string;
   imageClaudeModels: string;
   imageOpenAIModels: string;
@@ -234,8 +233,6 @@ export const en: Messages = {
 
   modelScopeSummary: 'Image model scope',
   modelScopeHint: 'Fable 5 only by default · expand to experiment with other families',
-  modelScopeWarning:
-    '⚠ Image compression is tuned for Fable 5 only — other families can use more tokens, not less. Opt in only for deliberate experiments (custom system prompt, subagent model setup, …).',
   compressionOffNoEffect: 'compression is off — these settings have no effect right now',
   imageClaudeModels: 'Image Claude models',
   imageOpenAIModels: 'Image OpenAI Responses models',
