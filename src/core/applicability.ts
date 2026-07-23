@@ -81,6 +81,10 @@ export function setAllowedModelBases(list: readonly string[] | null): void {
 function isAllowed(model: string | null | undefined): boolean {
   if (typeof model !== 'string') return false;
   const base = baseModelId(model).toLowerCase();
+  if (base.includes('gemini')) {
+    const validated = base === 'gemini-3.6-flash' || base === 'google/gemini-3.6-flash';
+    if (!validated) return false;
+  }
   return allowedModelBases().some((b) => {
     const target = b.toLowerCase();
     return base === target || base.startsWith(`${target}-`) || base === `google/${target}`;

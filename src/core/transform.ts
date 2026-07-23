@@ -480,14 +480,13 @@ export interface TransformInfo {
   /** Σ width×height across all rendered images. Pairs with upstream token count for
    *  empirical px/token regression: `tokens ≈ α·outgoingTextChars + β·imagePixels`. */
   imagePixels?: number;
-  /** GPT only. Vision tokens the rendered images actually cost as input
-   *  (Σ openAIVisionTokens over real image dims). The "Sent as image" basis. */
+  /** Provider-estimated vision tokens the rendered images cost as input. */
   imageTokens?: number;
-  /** GPT only. o200k_base text tokens of the content pxpipe imaged/stripped —
+  /** Provider-specific text-token estimate of the content pxpipe imaged/stripped —
    *  the would-have-paid "as plain text" baseline. Compared against imageTokens
    *  for the per-request saving. See src/core/openai-savings.ts. */
   baselineImagedTokens?: number;
-  /** GPT only. Local o200k tokens added solely by pxpipe (pointers, exact-token
+  /** Provider-specific estimate of native tokens added solely by pxpipe (pointers, exact-token
    * sheets, and framing). Removed from the unproxied counterfactual. */
   nativeInjectedTokens?: number;
   /** Total TEXT chars in the outgoing body (system + messages, excluding image base64).

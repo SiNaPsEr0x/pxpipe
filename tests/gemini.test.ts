@@ -37,8 +37,16 @@ describe('Gemini Model Profiles & Identification', () => {
 
   it('uses the measured production-geometry image cost', () => {
     expect(geminiVisionTokens('gemini-3.6-flash', 1568, 728)).toBe(1078);
+    expect(geminiVisionTokens('gemini-3.6-flash', 1568, 400)).toBe(1120);
+    expect(geminiVisionTokens('gemini-3.6-flash', 1024, 1024)).toBe(1120);
+    expect(geminiVisionTokens('gemini-3.6-flash', 768, 1932)).toBe(1120);
 
     expect(visionTokensForModel('gemini-3.6-flash', 1568, 728)).toBe(1078);
     expect(visionTokensForModel('google/gemini-3.6-flash', 1568, 728)).toBe(1078);
+  });
+
+  it('fails closed for unvalidated models and invalid dimensions', () => {
+    expect(() => geminiVisionTokens('gemini-3.5-flash', 1568, 728)).toThrow('Unsupported Gemini');
+    expect(() => geminiVisionTokens('gemini-3.6-flash', 0, 728)).toThrow('Unsupported Gemini');
   });
 });

@@ -7,6 +7,7 @@ import {
   transformGoogleGenerateContent,
   parseGoogleModelFromPath,
 } from '../src/core/google.js';
+import { geminiVisionTokens } from '../src/core/gemini-model-profiles.js';
 
 describe('parseGoogleModelFromPath', () => {
   it('extracts model name from Google AI Studio URL path', () => {
@@ -20,6 +21,22 @@ describe('parseGoogleModelFromPath', () => {
 });
 
 describe('transformGoogleGenerateContent', () => {
+  it('passes an unvalidated Gemini model through unchanged', async () => {
+    const raw = JSON.stringify({
+      systemInstruction: { parts: [{ text: 'System instruction. '.repeat(300) }] },
+      contents: [{ role: 'user', parts: [{ text: 'hi' }] }],
+    });
+    const result = await transformGoogleGenerateContent(
+      new TextEncoder().encode(raw),
+      'gemini-3.6-flash-preview',
+      { compress: true },
+    );
+
+    expect(new TextDecoder().decode(result.body)).toBe(raw);
+    expect(result.info.compressed).toBe(false);
+    expect(result.info.reason).toBe('unsupported_model');
+  });
+
   it('compresses system instruction when above profitability threshold', async () => {
     const sampleBody = {
       systemInstruction: {
@@ -32,7 +49,10 @@ describe('transformGoogleGenerateContent', () => {
 
     expect(result.info.compressed).toBe(true);
     expect(result.info.imageCount).toBeGreaterThan(0);
-    expect(result.info.imageTokens).toBe(1078 * result.info.imageCount);
+    expect(result.info.imageTokens).toBe(result.info.imageDims?.reduce(
+      (sum, image) => sum + geminiVisionTokens('gemini-3.6-flash', image.width, image.height),
+      0,
+    ));
     expect(result.info.baselineImagedTokens).toBeGreaterThan(1078);
     expect(result.info.nativeInjectedTokens).toBeGreaterThan(0);
     expect(result.info.imagePngs).toHaveLength(result.info.imageCount);
@@ -139,6 +159,7 @@ describe('transformGoogleGenerateContent', () => {
     const serialized = JSON.stringify(out.contents);
     expect(serialized).toContain('LIVE TASK: inspect this repository carefully.');
     expect(serialized).toContain('Earlier turns of THIS conversation');
+    expect(serialized).toContain('Exact identifiers from the rendered context');
     expect(serialized).toContain('result-23');
     expect(serialized).not.toContain('result-0 result-0 result-0');
   });

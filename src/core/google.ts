@@ -13,7 +13,7 @@ import {
   shrinkColsToContent,
   type RenderedImage,
 } from './render.js';
-import { geminiVisionTokens, resolveGeminiProfile } from './gemini-model-profiles.js';
+import { geminiVisionTokens, isGeminiModel, resolveGeminiProfile } from './gemini-model-profiles.js';
 import { bytesToBase64 } from './png.js';
 import { classifyContent, compactSlabWhitespace, type TransformInfo } from './transform.js';
 import {
@@ -104,7 +104,9 @@ interface GoogleHistoryPlan {
   images: RenderedImage[];
   imageSources: string[];
   text: string;
+  factSheet: string;
   baselineTokens: number;
+  nativeTokens: number;
   collapsedTurns: number;
   droppedChars: number;
   droppedCodepoints: Map<number, number>;
@@ -480,8 +482,11 @@ async function planGoogleHistory(
     (sum, image) => sum + geminiVisionTokens(modelName, image.width, image.height),
     0,
   );
-  const framingTokens = googleTextTokens(HISTORY_TRANSCRIPT_INTRO + HISTORY_TRANSCRIPT_OUTRO);
-  if (imageTokens + framingTokens >= baselineTokens) return null;
+  const factSheet = factSheetText(text, profile.factSheetFormat);
+  const nativeTokens = googleTextTokens(
+    HISTORY_TRANSCRIPT_INTRO + factSheet + HISTORY_TRANSCRIPT_OUTRO,
+  );
+  if (imageTokens + nativeTokens >= baselineTokens) return null;
   const droppedCodepoints = new Map<number, number>();
   let droppedChars = 0;
   for (const image of images) {
@@ -496,7 +501,9 @@ async function planGoogleHistory(
     images,
     imageSources: images.map(() => text),
     text,
+    factSheet,
     baselineTokens,
+    nativeTokens,
     collapsedTurns: boundary + 1 - start,
     droppedChars,
     droppedCodepoints,
@@ -526,6 +533,11 @@ export async function transformGoogleGenerateContent(
     reflow?: boolean;
   } = {},
 ): Promise<{ body: Uint8Array; info: TransformInfo }> {
+  if (!isGeminiModel(modelName)) {
+    const info = createDefaultInfo(modelName);
+    info.reason = 'unsupported_model';
+    return { body: bodyBytes, info };
+  }
   const text = new TextDecoder().decode(bodyBytes);
   let parsed: unknown;
   try {
@@ -649,8 +661,7 @@ export async function transformGoogleGenerateContent(
       { text: HISTORY_TRANSCRIPT_INTRO },
       ...historyPlan.images.map(imagePart),
     ];
-    const historySheet = factSheetText(historyPlan.text, profile.factSheetFormat);
-    if (historySheet) historyParts.push({ text: historySheet });
+    if (historyPlan.factSheet) historyParts.push({ text: historyPlan.factSheet });
     historyParts.push({ text: HISTORY_TRANSCRIPT_OUTRO });
     if (historyPlan.start > 0 && contents[historyPlan.start - 1]?.role === 'user') {
       // Keep Gemini's alternating role shape: append the synthetic prior-context
@@ -737,16 +748,13 @@ export async function transformGoogleGenerateContent(
   info.imageSourceTexts = effectiveStaticImages.map(() => info.imageSourceText);
 
   if (historyPlan) {
-      const historySheet = factSheetText(historyPlan.text, profile.factSheetFormat);
       const historyImageTokens = historyPlan.images.reduce(
         (sum, image) => sum + geminiVisionTokens(modelName, image.width, image.height),
         0,
       );
       info.imageTokens += historyImageTokens;
       info.baselineImagedTokens += historyPlan.baselineTokens;
-      info.nativeInjectedTokens += googleTextTokens(
-        HISTORY_TRANSCRIPT_INTRO + historySheet + HISTORY_TRANSCRIPT_OUTRO,
-      );
+      info.nativeInjectedTokens += historyPlan.nativeTokens;
       info.imageCount += historyPlan.images.length;
       info.imageBytes += historyPlan.images.reduce((sum, image) => sum + image.png.byteLength, 0);
       info.imagePngs.push(...historyPlan.images.map((image) => image.png));

@@ -163,7 +163,7 @@ describe('proxy usage extraction', () => {
     });
     const body = JSON.stringify({
       model: 'gemini-body-must-not-win',
-      systemInstruction: { parts: [{ text: 'System instruction. '.repeat(200) }] },
+      systemInstruction: { parts: [{ text: 'System instruction. '.repeat(300) }] },
       contents: [{ role: 'user', parts: [{ text: 'hi' }] }],
     });
     const res = await proxy(new Request(
@@ -180,11 +180,13 @@ describe('proxy usage extraction', () => {
     expect(captured?.accountingProvider).toBe('google');
     expect(captured?.info?.compressed).toBe(true);
     expect(captured?.info?.baselineTokens).toBe(400);
-    expect(captured?.info?.baselineImagedTokens).toBe(400);
+    expect(captured?.info?.baselineImagedTokens).toBeGreaterThan(0);
+    expect(captured?.info?.baselineImagedTokens).not.toBe(400);
+    expect(captured?.info?.nativeInjectedTokens).toBeGreaterThan(0);
     expect(captured?.info?.baselineProbeStatus).toBe('ok');
   });
 
-  it('keeps Gemini compression when optional countTokens measurement fails', async () => {
+  it('fails Gemini compression closed when countTokens validation fails', async () => {
     const forwardedBodies: string[] = [];
     const restore = mockUpstream(async (req) => {
       if (req.url.includes(':countTokens')) return new Response('no', { status: 503 });
@@ -201,7 +203,7 @@ describe('proxy usage extraction', () => {
       onRequest: (event) => { captured = event; },
     });
     const body = JSON.stringify({
-      systemInstruction: { parts: [{ text: 'System instruction. '.repeat(200) }] },
+      systemInstruction: { parts: [{ text: 'System instruction. '.repeat(300) }] },
       contents: [{ role: 'user', parts: [{ text: 'hi' }] }],
     });
     const res = await proxy(new Request(
@@ -213,10 +215,47 @@ describe('proxy usage extraction', () => {
     restore();
 
     expect(forwardedBodies).toHaveLength(1);
-    expect(forwardedBodies[0]).toContain('inlineData');
-    expect(captured?.info?.compressed).toBe(true);
-    expect(captured?.info?.reason).toBeUndefined();
+    expect(forwardedBodies[0]).not.toContain('inlineData');
+    expect(captured?.info?.compressed).toBe(false);
+    expect(captured?.info?.reason).toBe('count_tokens_failed');
     expect(captured?.info?.baselineProbeStatus).toBe('failed');
+    expect(captured?.info?.imagePngs).toBeUndefined();
+    expect(captured?.info?.imageDims).toBeUndefined();
+    expect(captured?.info?.compressedChars).toBe(0);
+    expect(captured?.info?.bucketChars).toBeUndefined();
+  });
+
+  it('does not apply the 3.6 Flash profile to an unvalidated Gemini alias', async () => {
+    const upstreamRequests: Request[] = [];
+    const restore = mockUpstream(async (req) => {
+      upstreamRequests.push(req.clone());
+      return new Response(JSON.stringify({
+        candidates: [{ content: { parts: [{ text: 'ok' }] }, finishReason: 'STOP' }],
+        usageMetadata: { promptTokenCount: 400, candidatesTokenCount: 1 },
+      }), { headers: { 'content-type': 'application/json' } });
+    });
+    let captured: ProxyEvent | undefined;
+    const proxy = createProxy({
+      upstream: 'http://ocproxy.test',
+      transform: { compress: true },
+      onRequest: (event) => { captured = event; },
+    });
+    const body = JSON.stringify({
+      systemInstruction: { parts: [{ text: 'System instruction. '.repeat(300) }] },
+      contents: [{ role: 'user', parts: [{ text: 'hi' }] }],
+    });
+    const res = await proxy(new Request(
+      'http://localhost/google-ai-studio/v1beta/models/gemini-3.6-flash-preview:generateContent',
+      { method: 'POST', headers: { 'content-type': 'application/json' }, body },
+    ));
+    await res.text();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    restore();
+
+    expect(upstreamRequests).toHaveLength(1);
+    expect(await upstreamRequests[0]!.text()).toBe(body);
+    expect(captured?.info?.compressed).toBe(false);
+    expect(captured?.info?.reason).toBe('unsupported_model');
   });
 
   it('classifies bypassed Gemini traffic as Google without probing', async () => {

@@ -44,6 +44,13 @@ export function resolveGeminiProfile(): GptModelProfile {
   return GEMINI_3_6_FLASH_PROFILE;
 }
 
-export function geminiVisionTokens(_model: string, _w: number, _h: number): number {
-  return 1078;
+export function geminiVisionTokens(model: string, w: number, h: number): number {
+  if (!isGeminiModel(model) || !Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) {
+    throw new Error(`Unsupported Gemini image-token estimate: ${model} ${w}x${h}`);
+  }
+  // Live usage measured this exact production canvas at 1,078 IMAGE tokens.
+  // Other measured shapes ranged up to 1,113; Google's current Gemini 3 docs
+  // publish an approximate 1,120-token default/high image budget. Use that
+  // documented ceiling for partial pages and width-shrunk slabs.
+  return w === 1568 && h === 728 ? 1078 : 1120;
 }

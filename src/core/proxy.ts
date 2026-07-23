@@ -21,6 +21,7 @@ import {
   openAIChatToAnthropicResponse,
 } from './messages-chat-bridge.js';
 import { parseGoogleModelFromPath, transformGoogleGenerateContent } from './google.js';
+import { isGeminiModel } from './gemini-model-profiles.js';
 
 export interface ProxyConfig {
   /** 'cloudflare-ai-gateway': routes both families through gatewayBaseUrl;
@@ -323,6 +324,41 @@ function normalizeUsage(raw: unknown): Usage | undefined {
   }
 
   return Object.keys(out).length > 0 ? out : undefined;
+}
+
+function revertedGoogleInfo(
+  info: TransformInfo,
+  reason: string,
+  baselineProbeStatus: 'ok' | 'failed',
+): TransformInfo {
+  return {
+    ...info,
+    compressed: false,
+    reason,
+    compressedChars: 0,
+    imageCount: 0,
+    imageBytes: 0,
+    imagePixels: undefined,
+    imageTokens: undefined,
+    baselineImagedTokens: undefined,
+    nativeInjectedTokens: undefined,
+    firstImagePng: undefined,
+    firstImageWidth: undefined,
+    firstImageHeight: undefined,
+    imagePngs: undefined,
+    imageDims: undefined,
+    imageSourceText: undefined,
+    imageSourceTexts: undefined,
+    toolResultImgs: undefined,
+    collapsedTurns: undefined,
+    collapsedChars: undefined,
+    collapsedImages: undefined,
+    historyTextChars: undefined,
+    historyReason: undefined,
+    bucketChars: undefined,
+    gateEval: undefined,
+    baselineProbeStatus,
+  };
 }
 
 function measureOpenAIChoices(obj: Record<string, unknown>, m: OutputMeasurement): void {
@@ -977,7 +1013,7 @@ export function createProxy(config: ProxyConfig = {}) {
         const chatStamp = bridgedChatMessages ? routedModel : undefined;
         const effectiveModel = (bridgedGptMessages || bridgedChatMessages) ? routedModel : model;
         const modelOk = isGoogle
-          ? isPxpipeSupportedModel(model)
+          ? isGeminiModel(model) && isPxpipeSupportedModel(model)
           : isMessages
             ? (messagesAnthropic && isPxpipeSupportedModel(model))
               || bridgedGptMessages
@@ -1029,37 +1065,25 @@ export function createProxy(config: ProxyConfig = {}) {
             countGoogleTokensUpstream(countUrl.toString(), r.body, countHeaders, model!),
           ]);
           if (baseline === null || transformed === null) {
-            // countTokens is optional measurement, not a delivery dependency.
-            // The transformer already applied a conservative local gate.
-            r.info.baselineProbeStatus = 'failed';
+            // The local text estimate is only a coarse fallback across prose,
+            // code, JSON, and Unicode. Fail closed when provider validation is
+            // unavailable rather than risk making the request more expensive.
+            r = {
+              body: bodyIn,
+              info: revertedGoogleInfo(r.info, 'count_tokens_failed', 'failed'),
+            };
           } else if (transformed >= baseline) {
             r = {
               body: bodyIn,
-              info: {
-                ...r.info,
-                compressed: false,
-                reason: `not_profitable (${transformed} >= ${baseline} tokens)`,
-                imageCount: 0,
-                imageBytes: 0,
-                imageTokens: undefined,
-                baselineImagedTokens: undefined,
-                nativeInjectedTokens: undefined,
-                baselineProbeStatus: 'ok',
-              },
+              info: revertedGoogleInfo(
+                r.info,
+                `not_profitable (${transformed} >= ${baseline} tokens)`,
+                'ok',
+              ),
             };
           } else {
             r.info.baselineTokens = baseline;
-            r.info.baselineImagedTokens = baseline;
-            r.info.nativeInjectedTokens = undefined;
             r.info.baselineProbeStatus = 'ok';
-            r.info.gateEval = {
-              site: 'slab',
-              imageTokens: transformed,
-              textTokens: baseline,
-              burnImageSide: 0,
-              burnTextSide: 0,
-              profitable: true,
-            };
           }
         }
         if (!modelOk) r.info.reason = 'unsupported_model';

@@ -30,11 +30,11 @@ export interface TrackEvent {
   image_bytes?: number;
   /** Total pixel area across all rendered images; pairs with cache_create_tokens for px/token regression. */
   image_pixels?: number;
-  /** GPT only: vision tokens billed for rendered images. */
+  /** Provider-estimated vision tokens billed for rendered images. */
   image_tokens?: number;
-  /** GPT only: o200k text tokens the imaged/stripped content would have cost. */
+  /** Provider-specific text-token estimate for imaged/stripped content. */
   baseline_imaged_tokens?: number;
-  /** GPT-only pxpipe-added native text, absent from the unproxied request. */
+  /** Provider-specific estimate of pxpipe-added native text. */
   native_injected_tokens?: number;
   /** TEXT chars in the outgoing body (all text blocks, incl. non-compressed tool_results).
    *  With image_pixels, a regression over cold-miss events solves chars_per_token (α) and pixels_per_token (β). */
