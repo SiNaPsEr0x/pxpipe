@@ -232,7 +232,7 @@ export const en: Messages = {
   killSwitchHint: 'kill switch · resets to on when you restart',
 
   modelScopeSummary: 'Image model scope',
-  modelScopeHint: 'Fable 5 only by default · expand to experiment with other families',
+  modelScopeHint: 'Expand to choose which models are included in imaging',
   compressionOffNoEffect: 'compression is off — these settings have no effect right now',
   imageClaudeModels: 'Image Claude models',
   imageOpenAIModels: 'Image OpenAI Responses models',

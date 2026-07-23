@@ -35,6 +35,8 @@ import {
   type DashboardRoute,
 } from './dashboard.js';
 import { resolveLang } from './dashboard/i18n.js';
+import { resolveConfigFilePath } from './config-file.js';
+import { getAllowedModelBases } from './core/applicability.js';
 
 /** Runtime config. The core transform tuning comes from DEFAULTS in
  *  transform.ts; startup knobs cover deployment plus emergency GPT scope
@@ -63,8 +65,6 @@ interface RuntimeConfig {
   captureErrorReqBody: boolean;
 }
 
-const DEFAULT_CONFIG_FILE = path.join(os.homedir(), '.config', 'pxpipe', 'config.json');
-
 function normalizeModelsConfig(value: unknown): string | undefined {
   if (Array.isArray(value)) {
     const models = value.map((v) => String(v).trim()).filter(Boolean);
@@ -75,7 +75,7 @@ function normalizeModelsConfig(value: unknown): string | undefined {
 }
 
 function applyConfigFileDefaults(): void {
-  const file = process.env.PXPIPE_CONFIG ?? DEFAULT_CONFIG_FILE;
+  const file = resolveConfigFilePath();
   if (!fs.existsSync(file)) return;
   let parsed: unknown;
   try {
@@ -196,7 +196,7 @@ Environment:
   PXPIPE_MODELS           comma-separated model bases to image (Claude/GPT/Grok);
                           default claude-fable-5 (Sol/Opus/GPT-5.5/Grok opt-in);
                           off disables
-  PXPIPE_CONFIG           JSON config path (default ~/.config/pxpipe/config.json)
+  PXPIPE_CONFIG           JSON config path (default ~/.pxpipe/config.json)
                           supports {"models": [...]} or {"models": "off"}
   PXPIPE_LOG              JSONL events path (default ~/.pxpipe/events.jsonl)
   PXPIPE_DUMP_DIR         debug: write every rendered PNG here (what the model

@@ -72,8 +72,10 @@ import {
   getAllowedModelBases,
   getConfiguredModelBases,
   isPxpipeSupportedModel,
+  isValidModelBaseId,
   setAllowedModelBases,
 } from './core/applicability.js';
+import { persistModelsToConfigFile } from './config-file.js';
 import type {
   StatsPayload,
   RecentPayload,
@@ -1510,25 +1512,32 @@ export class DashboardState {
   }
 
   /** POST /fragments/models — add/remove ONE model (Claude or GPT) from the
-   *  runtime compress scope. In-memory only; restart resets to the PXPIPE_MODELS
-   *  env / built-in default. The model checks read this live. */
+   *  runtime compress scope. Applies in-memory immediately and is also
+   *  persisted to the config file so the selection survives a process
+   *  restart (see config-file.ts persistModelsToConfigFile). */
   handleModelsToggle(model: string, on: boolean): void {
     const next = new Set(getAllowedModelBases());
-    if (on) next.add(model);
-    else next.delete(model);
-    setAllowedModelBases([...next]);
+    if (on) {
+      if (!isValidModelBaseId(model)) return;
+      next.add(model);
+    } else next.delete(model);
+    const bases = [...next];
+    setAllowedModelBases(bases);
+    persistModelsToConfigFile(bases);
   }
 
   /** POST /fragments/models with {list} — replace the WHOLE runtime compress
    *  scope from the PXPIPE_MODELS textbox. Same CSV shape as the env var;
-   *  empty or off/false/0/no/none = compress nothing. In-memory only. */
+   *  empty or off/false/0/no/none = compress nothing. Persisted to the
+   *  config file, same as handleModelsToggle. */
   handleModelsSet(csv: string): void {
     const trimmed = csv.trim();
     const bases =
       !trimmed || /^(0|false|no|off|none)$/i.test(trimmed)
         ? []
-        : trimmed.split(',').map((s) => s.trim()).filter(Boolean);
+        : trimmed.split(',').map((s) => s.trim()).filter(Boolean).filter(isValidModelBaseId);
     setAllowedModelBases(bases);
+    persistModelsToConfigFile(bases);
   }
 }
 

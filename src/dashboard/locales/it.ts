@@ -26,7 +26,7 @@ export const it: Messages = {
   killSwitchHint: 'interruttore di emergenza · torna attivo al riavvio',
 
   modelScopeSummary: 'Ambito modelli da imaging',
-  modelScopeHint: 'Solo Fable 5 di default · espandi per sperimentare con altre famiglie',
+  modelScopeHint: 'Espandi per scegliere quali modelli includere nell’imaging',
   compressionOffNoEffect: 'la compressione è disattivata — queste impostazioni non hanno effetto al momento',
   imageClaudeModels: 'Modelli Claude da trasformare in immagine',
   imageOpenAIModels: 'Modelli OpenAI Responses da trasformare in immagine',

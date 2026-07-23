@@ -48,6 +48,11 @@ let tmp: SessionsPaths;
 let dash: DashboardState;
 beforeEach(() => {
   tmp = makeTmp();
+  // Point PXPIPE_CONFIG at a throwaway file inside the tmpdir so that
+  // handleModelsToggle/handleModelsSet — which persist to disk via
+  // persistModelsToConfigFile() — never touch the developer's real
+  // ~/.pxpipe/config.json.
+  process.env.PXPIPE_CONFIG = path.join(path.dirname(tmp.eventsFile), 'config.json');
   // Inject an empty Claude Code map so tests don't scan the developer's real
   // ~/.claude/projects/ directory (slow + flaky depending on which machine
   // the suite runs on). Tests that need a populated map can re-construct.
@@ -55,6 +60,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   setAllowedModelBases(null);
+  delete process.env.PXPIPE_CONFIG;
   try {
     fs.rmSync(path.dirname(tmp.eventsFile), { recursive: true, force: true });
   } catch {
