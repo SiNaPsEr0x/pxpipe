@@ -243,6 +243,13 @@ Windows is community-supported: primary development targets macOS/Linux, and Win
 
 The repo ships a Windows launcher, [`claude-pxpipe.ps1`](claude-pxpipe.ps1), which starts the proxy and launches Claude Code through it. If you use [claude-mem](https://github.com/thedotmack/claude-mem), its background hooks would otherwise be routed through the pxpipe proxy and break: the launcher fixes this via [`claude-noproxy.exe`](claude-noproxy.cs), a tiny wrapper that strips the proxy environment variables before invoking Claude Code. On every startup the script runs a fast (<50 ms) check: if claude-mem is installed it makes sure `CLAUDE_CODE_PATH` in `~/.claude-mem/settings.json` points to `claude-noproxy.exe`, and if the exe is missing it recompiles it on the fly from `claude-noproxy.cs` using the `csc` compiler bundled with the .NET Framework. Windows-only; on other platforms the check is skipped.
 
+Launcher modes:
+
+- **Default (npx)** — runs `npx pxpipe-proxy@latest`. Note that npx may serve a cached, out-of-date package; the launcher prunes stale `pxpipe-proxy` entries from the npx cache on startup to mitigate this, but if you need the very latest code use `-Local`.
+- **`-Local`** — runs the local repo checkout via `pnpm run restart` (kills orphans, rebuilds, starts) instead of npx. Use this to test local changes; the npx cache is irrelevant in this mode.
+- **`-DebugCapture`** — full debug chain: routes traffic through pre/post-transform taps, enables `PXPIPE_DEBUG_CAPTURE_4XX=1` (4xx bodies saved under `~/.pxpipe`), and launches Claude Code with `--debug`.
+- Any other arguments are passed through to `claude` as-is, e.g. `claude-pxpipe.ps1 --resume <id> --debug`.
+
 The live dashboard ships in English and Italian, and picks a language from the browser automatically. See [docs/TRANSLATING.md](docs/TRANSLATING.md) if you want to add another one.
 
 ## FAQ
