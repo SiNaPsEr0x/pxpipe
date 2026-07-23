@@ -239,6 +239,10 @@ pnpm run build                # regenerates dist/
 
 Windows is community-supported: primary development targets macOS/Linux, and Windows-specific fixes rely on contributor PRs (thanks @makoribrian).
 
+### Windows launcher + claude-mem compatibility
+
+The repo ships a Windows launcher, [`claude-pxpipe.ps1`](claude-pxpipe.ps1), which starts the proxy and launches Claude Code through it. If you use [claude-mem](https://github.com/thedotmack/claude-mem), its background hooks would otherwise be routed through the pxpipe proxy and break: the launcher fixes this via [`claude-noproxy.exe`](claude-noproxy.cs), a tiny wrapper that strips the proxy environment variables before invoking Claude Code. On every startup the script runs a fast (<50 ms) check: if claude-mem is installed it makes sure `CLAUDE_CODE_PATH` in `~/.claude-mem/settings.json` points to `claude-noproxy.exe`, and if the exe is missing it recompiles it on the fly from `claude-noproxy.cs` using the `csc` compiler bundled with the .NET Framework. Windows-only; on other platforms the check is skipped.
+
 The live dashboard ships in English and Italian, and picks a language from the browser automatically. See [docs/TRANSLATING.md](docs/TRANSLATING.md) if you want to add another one.
 
 ## FAQ
